@@ -1132,15 +1132,7 @@ bool wxKeyConfigPanel::Create(wxWindow* parent,
 
 wxKeyConfigPanel::~wxKeyConfigPanel()
 {
-    // with the AddXXXXX functions we created wxKeyProfiles which we
-    // then added into the m_pKeyProfiles combobox... we now must delete them.
-    for (int i=0; i < m_pKeyProfiles->GetCount(); i++) {
-        wxKeyProfile *data = (wxKeyProfile *)m_pKeyProfiles->GetClientData(i);
-
-        // we can delete the client data safely because wxComboBox will leave
-        // the client data field untouched...
-        if (data) delete data;
-    }
+	this->RemoveAllProfiles();
 }
 
 void wxKeyConfigPanel::BuildCtrls()
@@ -1306,10 +1298,39 @@ wxSizer *wxKeyConfigPanel::BuildMain(wxSizer *column1, wxSizer *column2, bool bA
 
 
 
-
 // ----------------------------------------------------------------------------
 // wxKeyConfigPanel - IMPORT functions
 // ----------------------------------------------------------------------------
+void wxKeyConfigPanel::ImportRawList(const ControlMap& itemMap, const wxString &rootname)
+{
+	if (!IsUsingTreeCtrl()) 
+	{
+		//not supported
+		return;
+	}
+	
+	// do some std things...
+    Reset();
+
+	AddRootIfMissing(rootname);
+
+	wxTreeItemId rootid = m_pCommandsTree->GetRootItem();
+
+	for( ControlMap::const_iterator iter = itemMap.begin(); iter != itemMap.end(); ++iter )
+	{
+		wxTreeItemId newId = m_pCommandsTree->AppendItem(rootid, iter->first);
+
+		for( CommandList::const_iterator iiter = iter->second.begin(); iiter != iter->second.end(); ++iiter )
+		{
+			wxExTreeItemData *treedata = new wxExTreeItemData(iiter->second);
+			m_pCommandsTree->AppendItem(newId, iiter->first, -1, -1, treedata );
+		}
+	}
+
+    // expand the root (just for aesthetic/comfort reasons)...
+    m_pCommandsTree->Expand(m_pCommandsTree->GetRootItem());
+}
+
 
 void wxKeyConfigPanel::ImportMenuBarCmd(wxMenuBar *p, const wxString &rootname)
 {
@@ -1410,6 +1431,21 @@ void wxKeyConfigPanel::AddProfiles(const wxKeyProfileArray &arr)
     }
 
     SetSelProfile(arr.GetSelProfileIdx() >= 0 ? arr.GetSelProfileIdx() : 0);
+}
+
+void wxKeyConfigPanel::RemoveAllProfiles()
+{
+	// with the AddXXXXX functions we created wxKeyProfiles which we
+    // then added into the m_pKeyProfiles combobox... we now must delete them.
+    for (int i=0; i < m_pKeyProfiles->GetCount(); i++) {
+        wxKeyProfile *data = (wxKeyProfile *)m_pKeyProfiles->GetClientData(i);
+
+        // we can delete the client data safely because wxComboBox will leave
+        // the client data field untouched...
+        if (data) delete data;
+    }
+
+	m_pKeyProfiles->Clear();
 }
 
 void wxKeyConfigPanel::SetSelProfile(int n)
@@ -1569,20 +1605,36 @@ void wxKeyConfigPanel::UpdateButtons()
 
     // must the "Currently assigned to" field be updated ?
     if (m_pKeyField->IsValidKeyComb()) {
-        wxCmd *p = m_kBinder.GetCmdBindTo(m_pKeyField->GetValue());
-
-        if (p) {
-
-            // another command already owns this key bind...
-            m_pCurrCmd = p;
-            str = p->GetName();
-
-        } else {
-
+        //wxCmd *p = m_kBinder.GetCmdBindTo(m_pKeyField->GetValue());
+		CmdSet cmds = m_kBinder.GetCmdBindsTo(m_pKeyField->GetValue());
+        
+		if ( cmds.size() == 0 )
+		{
             str = wxT("None");
             m_pCurrCmd = NULL;
-        }
+		}
+		else
+		{
+			str.clear();
+			for ( CmdSet::const_iterator iter = cmds.begin(); iter != cmds.end(); ++iter )
+			{
+				if ( iter != cmds.begin() )
+				{
+					str += wxT(",");
+				}
+				m_pCurrCmd = (*iter); //dirty, lets look what happens
+				str += (*iter)->GetName();
+			}
+		}
     }
+
+	const wxStringBase::size_type maxSize = 20;
+	if ( str.length() > maxSize )
+	{
+		m_pCurrCmdField->SetToolTip(str);
+		str.RemoveLast( str.length() - maxSize );
+		str += wxT("...");
+	}
 
     m_pCurrCmdField->SetLabel(str);
 }
@@ -1634,10 +1686,14 @@ void wxKeyConfigPanel::ApplyChanges()
     // just copy the internal key binder used to allow a sort of
     // "undo" feature into the currently selected profile
     prof->DeepCopy(m_kBinder);
+	this->m_bProfileHasBeenModified = false;
 
     // and update the label of the m_pKeyProfiles control
     // (the name of the profile could have been changed)
-    m_pKeyProfiles->SetString(GetSelProfileIdx(), m_kBinder.GetName());
+	int id = GetSelProfileIdx();
+	if ( m_pKeyProfiles->GetString(id) != m_kBinder.GetName() ) {
+		m_pKeyProfiles->SetString(id, m_kBinder.GetName());
+	}
 }
 
 void wxKeyConfigPanel::EnableKeyProfiles(bool bEnable)
@@ -1736,12 +1792,24 @@ void wxKeyConfigPanel::OnProfileEditing(wxCommandEvent &)
     if (newname == oldname)
         return;
 
+	if ( GetSelProfile()->IsNotEditable() )
+	{
+        wxMessageBox(wxT("This profile cannot be renamed."),
+                    wxT("Warning"));
+
+		m_pKeyProfiles->Select(GetSelProfileIdx());
+		return;
+	}
+
     // now the profile has been changed...
     m_bProfileHasBeenModified = TRUE;
 
     // change the name of the current profile
     m_kBinder.SetName(newname);
 
+#ifdef wxKEYBINDER_AUTO_SAVE
+	ApplyChanges();
+#endif
 #if 0
     // and the string of the combobox...
     int n = m_pKeyProfiles->FindString(oldname);
@@ -1885,6 +1953,13 @@ void wxKeyConfigPanel::OnProfileSelected(wxCommandEvent &)
 
 void wxKeyConfigPanel::OnAssignKey(wxCommandEvent &)
 {
+	if ( GetSelProfile()->IsNotEditable() )
+	{
+        wxMessageBox(wxT("This profile cannot be changed."),
+                    wxT("Warning"));
+		return;
+	}
+
     // the new key combination should be valid because only when
     // it's valid this button is enabled...
     wxASSERT(m_pKeyField->IsValidKeyComb());
@@ -1907,27 +1982,40 @@ void wxKeyConfigPanel::OnAssignKey(wxCommandEvent &)
     // now the user has modified the currently selected profile...
     m_bProfileHasBeenModified = TRUE;
 
+#ifndef wxKEYBINDER_MULTICMD_PER_KEY
     // if the just added key bind was owned by another command,
     // remove it from the old command...
     if (m_pCurrCmd) {
         wxKeyBind tmp(m_pKeyField->GetValue());
-        int n;
+        int n = -1;
 
+		bool bind = m_pCurrCmd->IsBindTo(tmp, &n);
 #ifdef __WXDEBUG__
-        bool bind = m_pCurrCmd->IsBindTo(tmp, &n);
         wxASSERT_MSG(bind, wxT("the m_pCurrCmd variable should be NULL then..."));
 #endif      // to avoid warnings in release mode
 
         m_pCurrCmd->RemoveShortcut(n);
     }
+#endif
 
     // and update the list of the key bindings
     FillInBindings();
     m_pKeyField->Clear();
+
+#ifdef wxKEYBINDER_AUTO_SAVE
+	ApplyChanges();
+#endif
 }
 
 void wxKeyConfigPanel::OnRemoveKey(wxCommandEvent &)
 {
+	if ( GetSelProfile()->IsNotEditable() )
+	{
+        wxMessageBox(wxT("This profile cannot be changed."),
+                    wxT("Warning"));
+		return;
+	}
+
     // now the user has modified the currently selected profile...
     m_bProfileHasBeenModified = TRUE;
 
@@ -1937,10 +2025,21 @@ void wxKeyConfigPanel::OnRemoveKey(wxCommandEvent &)
     // and update the list of the key bindings
     FillInBindings();
     UpdateButtons();
+
+#ifdef wxKEYBINDER_AUTO_SAVE
+	ApplyChanges();
+#endif
 }
 
 void wxKeyConfigPanel::OnRemoveAllKey(wxCommandEvent &)
 {
+	if ( GetSelProfile()->IsNotEditable() )
+	{
+        wxMessageBox(wxT("This profile cannot be changed."),
+                    wxT("Warning"));
+		return;
+	}
+
     // now the user has modified the currently selected profile...
     m_bProfileHasBeenModified = TRUE;
 
@@ -1950,6 +2049,10 @@ void wxKeyConfigPanel::OnRemoveAllKey(wxCommandEvent &)
     // and update the list of the key bindings
     FillInBindings();
     UpdateButtons();
+
+#ifdef wxKEYBINDER_AUTO_SAVE
+	ApplyChanges();
+#endif
 }
 
 void wxKeyConfigPanel::OnAddProfile(wxCommandEvent &)
@@ -1983,7 +2086,7 @@ void wxKeyConfigPanel::OnAddProfile(wxCommandEvent &)
     }
 
     // create the new profile copying the last selected one
-    wxKeyProfile *newprof = new wxKeyProfile(*sel);
+    wxKeyProfile *newprof = new wxKeyProfile(*sel, false, false); //copies of profiles ARE deletable and editable
     newprof->SetName(dlg.GetValue());       // just change its name
     AddProfile(*newprof);
     delete newprof;
@@ -2004,7 +2107,15 @@ void wxKeyConfigPanel::OnRemoveProfile(wxCommandEvent &)
     }
 
     // delete the keyprofile associated with that item...
-    delete ((wxKeyProfile*)m_pKeyProfiles->GetClientData(m_nCurrentProf));
+	wxKeyProfile* pCurProfile = (wxKeyProfile*)m_pKeyProfiles->GetClientData(m_nCurrentProf);
+
+	if ( pCurProfile->IsNotDeletable() ) {
+		wxMessageBox(wxT("This profile is not deletable."),
+                    wxT("Warning"));
+        return;
+	}
+
+    delete (pCurProfile);
     m_pKeyProfiles->Delete(m_nCurrentProf);
 
     // update the currently selected profile
