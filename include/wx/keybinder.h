@@ -13,7 +13,6 @@
 #ifndef __KEYBINDER_G__
 #define __KEYBINDER_G__
 
-
 // required includes
 #include "wx/keybinderdef.h"
 #include "wx/panel.h"
@@ -26,7 +25,7 @@
 #include "wx/textctrl.h"
 #include "wx/combobox.h"
 #include "wx/app.h"
-
+#include "wx/hashset.h"
 
 // The maximum number of shortcuts associated with each wxCmd.
 #define wxCMD_MAX_SHORTCUTS             3
@@ -563,7 +562,10 @@ public:     // accessors
         { return m_pGlobalHdl ; }
 };
 
-
+//added by vbs
+WX_DECLARE_HASH_SET(int, wxIntegerHash, wxIntegerEqual, IdSet);
+WX_DECLARE_HASH_SET(wxCmd*, wxPointerHash, wxPointerEqual, CmdSet);
+    
 
 //! This is the real keybinder. This object is an event handler which
 //! can be #Attach()ed to any wxWindow to intercept the keypresses
@@ -620,6 +622,14 @@ protected:
             if (m_arrCmd.Item(i)->IsBindTo(key, n))
                 return i;
         return -1;
+    }
+
+    IdSet FindCmdBindsTo(const wxKeyBind &key, int *n = NULL) const {
+        IdSet binds;
+		for (int i=0; i < (int)m_arrCmd.GetCount(); i++)
+            if (m_arrCmd.Item(i)->IsBindTo(key, n))
+				binds.insert( i );
+        return binds;
     }
 
     //! Returns the index of the first command which matches the
@@ -773,6 +783,18 @@ public:     // miscellaneous
         return NULL;
     }
 
+	CmdSet GetCmdBindsTo(const wxString &key, int *n = NULL) const {
+        IdSet binds = FindCmdBindsTo(wxKeyBind(key), n);
+		
+		CmdSet cmds;
+		for ( IdSet::const_iterator iter = binds.begin(); iter != binds.end(); ++iter )
+		{
+			cmds.insert( m_arrCmd.Item((*iter)) );
+		}
+        return cmds;
+    }
+
+
     wxKeyBind *GetShortcut(int id, int n) const {
         wxCmd *p = GetCmd(id);
         if (p) return p->GetShortcut(n);
@@ -818,13 +840,27 @@ protected:
     //! The description of this profile.
     wxString m_strDescription;
 
+	bool m_notDeletable;
+	bool m_notEditable;
 public:
     wxKeyProfile(const wxString &name = wxEmptyString,
-                const wxString &desc = wxEmptyString)
-        : m_strName(name), m_strDescription(desc) {}
+                const wxString &desc = wxEmptyString,
+				bool notDeletable = false,
+				bool notEditable = false )
+        : m_strName(name), m_strDescription(desc),
+			m_notDeletable(notDeletable), m_notEditable(notEditable) {}
 
     wxKeyProfile(const wxKeyProfile &tocopy)
         { DeepCopy(tocopy); }
+
+	wxKeyProfile(const wxKeyProfile &tocopy,
+			 bool notDeletable,
+			 bool notEditable )
+    { 
+		DeepCopy(tocopy);
+		m_notDeletable = notDeletable;
+		m_notEditable = notEditable;
+	}
 
     virtual ~wxKeyProfile() {}
 
@@ -833,6 +869,8 @@ public:
         wxKeyBinder::DeepCopy(p);
         m_strName = p.m_strName;
         m_strDescription = p.m_strDescription;
+		m_notDeletable = p.m_notDeletable;
+		m_notEditable = p.m_notEditable;
     }
 
     wxKeyProfile &operator=(const wxKeyProfile &tocopy) {
@@ -851,7 +889,8 @@ public:     // miscellaneous
     bool Save(wxConfigBase *p, const wxString &key = wxEmptyString, bool bCleanOld = FALSE) const;
     bool Load(wxConfigBase *p, const wxString &key = wxEmptyString);
 
-
+	bool IsNotDeletable() const		{ return m_notDeletable; };
+	bool IsNotEditable() const		{ return m_notEditable; };
 private:
     DECLARE_CLASS(wxKeyProfile)
 };
@@ -1190,6 +1229,12 @@ public:     // import commands (to call BEFORE ShowModal):
     virtual void ImportKeyProfileCmd(const wxKeyProfile &toimport,
                                 const wxString &rootname = wxT("Commands"));
 
+	//! Additions by vbs
+	WX_DECLARE_STRING_HASH_MAP( int, CommandList );
+	WX_DECLARE_STRING_HASH_MAP( CommandList, ControlMap );
+	//! Supports only tree control
+	void ImportRawList(const ControlMap& itemMap, const wxString &rootname);
+	//end of vbs
 
 public:     // keyprofile utilities (to call BEFORE ShowModal):
             // they affect the keybindings only
@@ -1210,6 +1255,7 @@ public:     // keyprofile utilities (to call BEFORE ShowModal):
     //! Forces the panel to select the n-th profile in the keyprofile combo box.
     virtual void SetSelProfile(int n);
 
+	virtual void RemoveAllProfiles();
 
 public:     // output-access utilities (to call AFTER ShowModal)
 
