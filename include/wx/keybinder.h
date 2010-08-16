@@ -438,7 +438,7 @@ public:
     }
 
     void Add(wxCmd *p)          { m_arr.Add(p); }
-    void Remove(int n);
+    void Remove(size_t n);
     void Clear();
 
     int GetCount() const        { return m_arr.GetCount(); }

@@ -224,7 +224,6 @@ wxString wxKeyBind::KeyCodeToString(int keyCode)
     case WXK_MBUTTON:
     case WXK_CLEAR:
 
-    case WXK_PAUSE:
     case WXK_NUMLOCK:
     case WXK_SCROLL :
         wxKBLogDebug(wxT("wxKeyBind::KeyCodeToString - ignored key: [%d]"), keyCode);
@@ -323,13 +322,16 @@ wxString wxKeyBind::KeyCodeToString(int keyCode)
         res << wxT("END"); break;
     case WXK_HOME:
         res << wxT("HOME"); break;
-
+	case WXK_PAUSE:
+		res << wxT("PAUSE"); break;
+	case WXK_COMMA:
+		res << wxT(","); break;
 
 
     default:
 
         // ASCII chars...
-        if (wxIsalnum(keyCode))
+        if (keyCode < 256 && wxIsalnum(keyCode))
         {
             res << (wxChar)keyCode;
             break;
@@ -556,7 +558,7 @@ bool wxCmd::Load(wxConfigBase *p, const wxString &key)
 // wxCmdArray
 // --------------------
 
-void wxCmdArray::Remove(int n)
+void wxCmdArray::Remove(size_t n)
 {
     if (n < 0 || n >= GetCount())
         return;
@@ -570,7 +572,7 @@ void wxCmdArray::Remove(int n)
 
 void wxCmdArray::Clear()
 {
-    for (int i=GetCount(); i > 0; i--)
+    for (size_t i=GetCount(); i > 0; i--)
         Remove(0);
 
     // the array should be already empty
@@ -745,7 +747,8 @@ void wxKeyBinder::Detach(wxWindow *p)
 
 void wxKeyBinder::DetachAll()
 {
-    wxKBLogDebug(wxT("wxKeyBinder::DetachAll - detaching from all my [%d] targets"), GetAttachedWndCount());
+    wxKBLogDebug(wxT("wxKeyBinder::DetachAll - detaching from all my [%d] targets"), 
+				 (int)GetAttachedWndCount());
 
     // delete all handlers (they will automatically remove themselves from
     // event handler chains)
@@ -837,7 +840,7 @@ bool wxKeyBinder::Save(wxConfigBase *cfg, const wxString &key, bool bCleanOld) c
     if (bCleanOld && cfg->Exists(basekey))
         cfg->DeleteGroup(basekey);      // delete old stuff...
 
-    for (int i=0; i < m_arrCmd.GetCount(); i++) {
+    for (size_t i=0; i < m_arrCmd.GetCount(); i++) {
 
         wxCmd *curr = m_arrCmd.Item(i);
 
@@ -976,11 +979,11 @@ bool wxKeyProfileArray::Save(wxConfigBase *cfg, const wxString &key, bool bClean
     if (!cfg->Write(basekey + wxT("nSelProfile"), m_nSelected))
         return FALSE;
 
-    for (int i=0; i<GetCount(); i++)
+    for (size_t i=0; i<GetCount(); i++)
 
         // save all our elements into a subkey of the given key
         b &= Item(i)->Save(cfg, basekey + wxKEYPROFILE_CONFIG_PREFIX +
-                                    wxString::Format(wxT("%d"), i), bCleanOld);
+                                    wxString::Format(wxT("%d"), (int)i), bCleanOld);
 
     // if required, remove any previously stored key profile...
     if (bCleanOld) {
@@ -1000,7 +1003,7 @@ bool wxKeyProfileArray::Save(wxConfigBase *cfg, const wxString &key, bool bClean
                 wxString id=str.Right(str.Len()-wxString(wxKEYPROFILE_CONFIG_PREFIX).Len());
                 id.ToLong(&n);
 
-                if (n >= GetCount()) {
+                if (n >= (long)GetCount()) {
 
                     // this is a profile which was saved in a previous session
                     // but which has now been removed by the user... remove it
@@ -1066,13 +1069,15 @@ bool wxKeyProfileArray::Load(wxConfigBase *p, const wxString &key)
 void wxKeyMonitorTextCtrl::OnKey(wxKeyEvent &event)
 {
     // backspace cannot be used as shortcut key...
-    if (event.GetKeyCode() == WXK_BACK) {
+#ifndef wxKEYBINDER_ALLOW_BACKSPACE
+	if (event.GetKeyCode() == WXK_BACK) {
 
         // this text ctrl contains something and the user pressed backspace...
         // we must delete the keypress...
         Clear();
         return;
     }
+#endif
 
     if (event.GetEventType() == wxEVT_KEY_DOWN ||
         (event.GetEventType() == wxEVT_KEY_UP && !IsValidKeyComb())) {
@@ -1119,8 +1124,9 @@ bool wxKeyConfigPanel::Create(wxWindow* parent,
         HasFlag(wxKEYBINDER_SHOW_APPLYBUTTON) != 0);
 
     // set the final sizer as window's sizer
-    SetSizer(main);
-    main->SetSizeHints(this);
+//    SetSizer(main);
+//    main->SetSizeHints(this);
+    SetSizerAndFit(main);
 
     // set up the controls: the user of the panel must call one of the
     // ImportXXXX() functions to enable the use of the panel !!!!
@@ -1390,7 +1396,7 @@ void wxKeyConfigPanel::ImportKeyProfileCmd(const wxKeyProfile &toimport,
     } else {
 
         const wxCmdArray *arr = toimport.GetArray();
-        for (int i=0; i < (int)arr->GetCount(); i++) {
+        for (size_t i=0; i < arr->GetCount(); i++) {
 
             // create a list of items containing as untyped client data
             // (void*) the INT which is their ID...
@@ -1425,7 +1431,7 @@ void wxKeyConfigPanel::AddProfile(const wxKeyProfile &p)
 void wxKeyConfigPanel::AddProfiles(const wxKeyProfileArray &arr)
 {
     // copy the given profiles into the listbox data list
-    for (int i=0; i < arr.GetCount(); i++) {
+    for (size_t i=0; i < arr.GetCount(); i++) {
         wxKeyProfile *copy = new wxKeyProfile(*arr.Item(i));
         m_pKeyProfiles->Append(arr.Item(i)->GetName(), (void *)copy);
     }
@@ -1450,7 +1456,8 @@ void wxKeyConfigPanel::RemoveAllProfiles()
 
 void wxKeyConfigPanel::SetSelProfile(int n)
 {
-    wxASSERT(m_pKeyProfiles && n >= 0 && n < m_pKeyProfiles->GetCount());
+    wxASSERT(m_pKeyProfiles && n >= 0 && 
+			 n < (int)m_pKeyProfiles->GetCount());
 
     m_pKeyProfiles->SetSelection(n);
     m_nCurrentProf = n;
@@ -1517,7 +1524,7 @@ wxCmd *wxKeyConfigPanel::GetSelCmd() const
         if (sel < 0)
             return NULL;
 
-        id = (long)m_pCommandsList->GetClientData(sel);
+        id = (long)(m_pCommandsList->GetClientData(sel));
     }
 
     return m_kBinder.GetCmd(id);
@@ -1574,7 +1581,7 @@ wxKeyProfileArray wxKeyConfigPanel::GetProfiles() const
     // NB: it's very important to *copy* the profiles into the new array
     //     since the ddestructor of wxKeyConfigPanel expect the m_pKeyProfiles
     //     control to contain always valid pointers NOT shared with anyone else
-    for (int i=0; i<m_pKeyProfiles->GetCount(); i++)
+    for (size_t i=0; i<m_pKeyProfiles->GetCount(); i++)
         arr.Add(new wxKeyProfile(*GetProfile(i)));
     arr.SetSelProfile(GetSelProfileIdx());
 
@@ -1593,7 +1600,7 @@ wxKeyProfileArray wxKeyConfigPanel::GetProfiles() const
 void wxKeyConfigPanel::UpdateButtons()
 {
     wxKBLogDebug(wxT("wxKeyConfigPanel::UpdateButtons"));
-    wxString str;
+    wxString str = wxT("None");
 
     // is the remove button to be enabled ?
     m_pRemoveBtn->Enable(m_pBindings->GetSelection() >= 0);
@@ -1866,8 +1873,8 @@ void wxKeyConfigPanel::OnCategorySelected(wxCommandEvent &ev)
 
     // clear the old elements & insert the new ones
     m_pCommandsList->Clear();
-    for (int i=0; i < (int)arr.GetCount(); i++)
-        m_pCommandsList->Append(arr.Item(i), (void *)data->GetID(i));
+    for (size_t i=0; i < arr.GetCount(); i++)
+        m_pCommandsList->Append(arr.Item(i), (void *)data->GetID((int)i));
 
     // select the first
     m_pCommandsList->Select(0);
@@ -1989,8 +1996,8 @@ void wxKeyConfigPanel::OnAssignKey(wxCommandEvent &)
         wxKeyBind tmp(m_pKeyField->GetValue());
         int n = -1;
 
-		bool bind = m_pCurrCmd->IsBindTo(tmp, &n);
 #ifdef __WXDEBUG__
+		bool bind = m_pCurrCmd->IsBindTo(tmp, &n);
         wxASSERT_MSG(bind, wxT("the m_pCurrCmd variable should be NULL then..."));
 #endif      // to avoid warnings in release mode
 
@@ -2075,7 +2082,7 @@ void wxKeyConfigPanel::OnAddProfile(wxCommandEvent &)
 
         // if the name is the same of one of the existing profiles, we have to abort...
         valid = TRUE;
-        for (int j=0; j < m_pKeyProfiles->GetCount(); j++)
+        for (size_t j=0; j < m_pKeyProfiles->GetCount(); j++)
             valid &= (GetProfile(j)->GetName() != dlg.GetValue());
 
         if (!valid) {
@@ -2121,7 +2128,7 @@ void wxKeyConfigPanel::OnRemoveProfile(wxCommandEvent &)
     // update the currently selected profile
     int newsel = m_nCurrentProf-1;
     if (newsel < 0) newsel=0;
-    wxASSERT(newsel < m_pKeyProfiles->GetCount());
+    wxASSERT(newsel < (int)m_pKeyProfiles->GetCount());
 
     // keep sync m_nCurrentProf with the currently really selected item
     SetSelProfile(newsel);
