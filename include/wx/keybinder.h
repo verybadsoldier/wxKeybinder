@@ -44,6 +44,13 @@
     inline void wxKBLogDebug(const wxChar *WXUNUSED(fmt), ...) { /* do nothing */ }
 #endif
 
+#if wxKEYBINDER_SPRINGSETTINGS
+#define wxKEYBINDER_ALLOW_PAUSE_KEY
+#define wxKEYBINDER_ALLOW_PAUSE_KEY
+#define wxKEYBINDER_ALLOW_NON_ALPHANUM_KEYS
+#define	wxKEYBINDER_ALLOW_BACKSPACE
+#define wxKEYBINDER_MULTICMD_PER_KEY
+#endif
 
 // defined later...
 class wxConfigBase;

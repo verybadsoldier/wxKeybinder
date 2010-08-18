@@ -224,6 +224,9 @@ wxString wxKeyBind::KeyCodeToString(int keyCode)
     case WXK_MBUTTON:
     case WXK_CLEAR:
 
+#ifndef wxKEYBINDER_ALLOW_PAUSE_KEY
+	case WXK_PAUSE:
+#endif
     case WXK_NUMLOCK:
     case WXK_SCROLL :
         wxKBLogDebug(wxT("wxKeyBind::KeyCodeToString - ignored key: [%d]"), keyCode);
@@ -322,16 +325,19 @@ wxString wxKeyBind::KeyCodeToString(int keyCode)
         res << wxT("END"); break;
     case WXK_HOME:
         res << wxT("HOME"); break;
+#ifdef wxKEYBINDER_ALLOW_PAUSE_KEY
 	case WXK_PAUSE:
-		res << wxT("PAUSE"); break;
-	case WXK_COMMA:
-		res << wxT(","); break;
-
+		res << wxT("PAUSE"); break;			//pause added
+#endif
 
     default:
 
         // ASCII chars...
-        if (keyCode < 256 && wxIsalnum(keyCode))
+		if (keyCode < 256 
+#ifndef wxKEYBINDER_ALLOW_NON_ALPHANUM_KEYS
+							&& wxIsalnum(keyCode)
+#endif
+							)
         {
             res << (wxChar)keyCode;
             break;
