@@ -232,6 +232,7 @@ wxString wxKeyBind::KeyCodeToString(int keyCode)
         wxKBLogDebug(wxT("wxKeyBind::KeyCodeToString - ignored key: [%d]"), keyCode);
         return wxEmptyString;
 
+/* We want this behavior
         // these must be ABSOLUTELY ignored: they are key modifiers
         // we won't output any LOG message since these keys could be pressed
         // for long time while the user choose its preferred keycombination:
@@ -240,9 +241,7 @@ wxString wxKeyBind::KeyCodeToString(int keyCode)
     case WXK_SHIFT:
     case WXK_CONTROL:
         return wxEmptyString;
-
-
-
+*/
 
         // FUNCTION KEYS
         // ---------------------------
@@ -330,7 +329,14 @@ wxString wxKeyBind::KeyCodeToString(int keyCode)
 		res << wxT("PAUSE"); break;			//pause added
 #endif
 
-    default:
+    case WXK_CONTROL:
+        res << wxT("CTRL"); break;
+    case WXK_SHIFT:
+        res << wxT("SHIFT"); break;
+    case WXK_ALT:
+        res << wxT("ALT"); break;
+
+	default:
 
         // ASCII chars...
 		if (keyCode < 256 
@@ -376,8 +382,44 @@ int wxKeyBind::StringToKeyCode(const wxString &keyName)
     if (keyName == wxT("ESCAPE")) return WXK_ESCAPE;
     if (keyName == wxT("SPACE")) return WXK_SPACE;
     if (keyName == wxT("DELETE")) return WXK_DELETE;
+	if (keyName == wxT("INSERT")) return WXK_INSERT;
 
-    // it should be an ASCII key...
+	if (keyName == wxT("HOME")) return WXK_HOME;
+	if (keyName == wxT("END")) return WXK_END;
+	if (keyName == wxT("PAGEUP")) return WXK_PAGEUP;
+	if (keyName == wxT("PAGEDOWN")) return WXK_PAGEDOWN;
+
+	if (keyName == wxT("RIGHT")) return WXK_RIGHT;
+	if (keyName == wxT("LEFT")) return WXK_LEFT;
+	if (keyName == wxT("UP")) return WXK_UP;
+	if (keyName == wxT("DOWN")) return WXK_DOWN;
+
+	if (keyName == wxT("CTRL")) return WXK_CONTROL;
+	if (keyName == wxT("ALT")) return WXK_ALT;
+	if (keyName == wxT("SHIFT")) return WXK_SHIFT;
+
+	if (keyName == wxT("PAUSE")) return WXK_PAUSE;
+	if (keyName == wxT("PRINT")) return WXK_PRINT;
+
+	if (keyName == wxT("- (numpad)")) return WXK_NUMPAD_SUBTRACT;
+	if (keyName == wxT("+ (numpad)")) return WXK_NUMPAD_ADD;
+	if (keyName == wxT("* (numpad)")) return WXK_NUMPAD_MULTIPLY;
+	if (keyName == wxT(". (numpad)")) return WXK_NUMPAD_DECIMAL;
+	if (keyName == wxT("/ (numpad)")) return WXK_NUMPAD_DIVIDE;
+	if (keyName == wxT("0 (numpad)")) return WXK_NUMPAD0;
+	if (keyName == wxT("1 (numpad)")) return WXK_NUMPAD1;
+	if (keyName == wxT("2 (numpad)")) return WXK_NUMPAD2;
+	if (keyName == wxT("3 (numpad)")) return WXK_NUMPAD3;
+	if (keyName == wxT("4 (numpad)")) return WXK_NUMPAD4;
+	if (keyName == wxT("5 (numpad)")) return WXK_NUMPAD5;
+	if (keyName == wxT("6 (numpad)")) return WXK_NUMPAD6;
+	if (keyName == wxT("7 (numpad)")) return WXK_NUMPAD7;
+	if (keyName == wxT("8 (numpad)")) return WXK_NUMPAD8;
+	if (keyName == wxT("9 (numpad)")) return WXK_NUMPAD9;
+	if (keyName == wxT("= (numpad)")) return WXK_NUMPAD_EQUAL;
+	if (keyName == wxT("ENTER (numpad)")) return WXK_NUMPAD_ENTER;
+
+	// it should be an ASCII key...
     return (int)keyName.GetChar(0);
 }
 
@@ -403,13 +445,13 @@ int wxKeyBind::StringToKeyModifier(const wxString &keyModifier)
     wxString str = keyModifier;
     str.MakeUpper();
 
-    if (str.Contains(wxT("ALT")))
+    if (str.Contains(wxT("ALT+")))
         mod |= wxACCEL_ALT;
 
-    if (str.Contains(wxT("CTRL")))
+    if (str.Contains(wxT("CTRL+")))
         mod |= wxACCEL_CTRL;
 
-    if (str.Contains(wxT("SHIFT")))
+    if (str.Contains(wxT("SHIFT+")))
         mod |= wxACCEL_SHIFT;
 
     return mod;
@@ -433,8 +475,24 @@ int wxKeyBind::GetKeyModifier(wxKeyEvent &event)
 wxString wxKeyBind::GetKeyStrokeString(wxKeyEvent &event)
 {
     // key stroke string = key modifiers (Ctrl, Alt or Shift) + key code
-    return KeyModifierToString(GetKeyModifier(event)) +
-        KeyCodeToString(event.GetKeyCode());
+	const wxString str = KeyCodeToString(event.GetKeyCode());
+	int mods = GetKeyModifier(event);
+
+	//delete modifiers if the actual key is a modifier key
+	if ( event.GetKeyCode() == WXK_CONTROL )
+	{
+		mods &= ~wxACCEL_CTRL;
+	}
+	if ( event.GetKeyCode() == WXK_SHIFT )
+	{
+		mods &= ~wxACCEL_SHIFT;
+	}
+	if ( event.GetKeyCode() == WXK_ALT )
+	{
+		mods &= ~wxACCEL_ALT;
+	}
+
+	return KeyModifierToString(mods) + str;
 }
 
 

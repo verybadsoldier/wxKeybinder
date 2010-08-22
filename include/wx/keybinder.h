@@ -28,7 +28,7 @@
 #include "wx/hashset.h"
 
 // The maximum number of shortcuts associated with each wxCmd.
-#define wxCMD_MAX_SHORTCUTS             3
+#define wxCMD_MAX_SHORTCUTS             10
 
 #ifndef wxID_INVALID
 
@@ -45,7 +45,7 @@
 #endif
 
 #ifdef wxKEYBINDER_SPRINGSETTINGS
-#define wxKEYBINDER_ALLOW_PAUSE_KEY
+#define wxKEYBINDER_AUTO_SAVE
 #define wxKEYBINDER_ALLOW_PAUSE_KEY
 #define wxKEYBINDER_ALLOW_NON_ALPHANUM_KEYS
 #define	wxKEYBINDER_ALLOW_BACKSPACE
@@ -78,6 +78,34 @@ protected:
     //! One of the wxWidgets key code which defines the key shortcut.
     int m_nKeyCode;
 
+	static wxString discardModifier( const wxString& keystring )
+	{
+		wxString result;
+		if ( keystring.EndsWith("+") )	//handle stuff like numpad+ or ctrl++
+		{
+			wxString tmp = keystring;
+			result = tmp.RemoveLast().AfterLast('+') + '+';
+		}
+		else if ( keystring.StartsWith("+") )	//handle stuff like "+ (numpad)"
+		{
+			result = keystring;
+		}
+		else 
+		{
+			size_t lastAdd = keystring.find_last_of('+');
+			if ( ( lastAdd != keystring.npos ) && ( keystring.GetChar(lastAdd - 1) == '+' ) )
+			{
+				assert( (lastAdd > 0) && "character '+' found in unexcepted location!" );
+				result = keystring.substr( lastAdd );
+			}
+			else
+			{
+				result = keystring.AfterLast('+');
+			}
+		}
+		return result;
+	}
+
 public:
 
     wxKeyBind() {
@@ -94,7 +122,7 @@ public:
 
     wxKeyBind(const wxString &key) {
         m_nFlags = StringToKeyModifier(key);
-        m_nKeyCode = StringToKeyCode(key.AfterLast('+').AfterLast('-'));
+		m_nKeyCode = StringToKeyCode( wxKeyBind::discardModifier( key ) );//.AfterLast('+')).AfterLast('-'));
     }
 
     virtual void DeepCopy(const wxKeyBind &p) {
@@ -314,6 +342,15 @@ public:
             m_keyShortcut[i] = m_keyShortcut[i+1];
         m_nShortcuts--;
         Update();
+    }
+
+    void RemoveShortcut(const wxString &key) {
+		for (int i=0; i < m_nShortcuts; i++) {
+			if ( m_keyShortcut[i].GetStr() == key ) {
+				RemoveShortcut( i );
+				return;
+			}
+		}
     }
 
     //! Removes all the shortcuts associates to this command.
