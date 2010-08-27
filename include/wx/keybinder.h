@@ -1288,7 +1288,7 @@ public:     // keyprofile utilities (to call BEFORE ShowModal):
     //!       (except in the case it's the first keyprofile added).
     //!       To force the selection of a profile, you should use the
     //!       SetSelProfile() function.
-    virtual void AddProfile(const wxKeyProfile &p);
+    virtual void AddProfile(const wxKeyProfile &p, bool markAsChanged = false);
 
     //! Adds all the profiles stored in the given array to the keyprofile
     //! combo box copying them into the panel for user modifications.
@@ -1350,6 +1350,9 @@ public:     // miscellaneous
     void DisableKeyProfiles()
         { EnableKeyProfiles(FALSE); }
 
+
+	bool HasProfileBeenModifiedOrSelected() const;
+	void ResetProfileBeenModifiedOrSelected();
 
 protected:      // event handlers
 
@@ -1440,6 +1443,8 @@ protected:      // members
     //! profile has been modified, a dialog will ask to the user if he wants
     //! to save its changes or not...
     bool m_bProfileHasBeenModified;
+
+	bool m_bProfileModifiedOrChanged;
 
 protected:      // the subwindows of this dialog
 

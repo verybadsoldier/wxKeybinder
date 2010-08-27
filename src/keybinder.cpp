@@ -1172,6 +1172,7 @@ bool wxKeyConfigPanel::Create(wxWindow* parent,
         return false;
 
     m_bProfileHasBeenModified = FALSE;
+	m_bProfileModifiedOrChanged = FALSE;
 
     wxASSERT_MSG(HasFlag(wxKEYBINDER_USE_LISTBOX) ||
                  HasFlag(wxKEYBINDER_USE_TREECTRL),
@@ -1481,7 +1482,7 @@ void wxKeyConfigPanel::ImportKeyProfileCmd(const wxKeyProfile &toimport,
 // wxKeyConfigPanel - MISCELLANEOUS functions
 // ----------------------------------------------------------------------------
 
-void wxKeyConfigPanel::AddProfile(const wxKeyProfile &p)
+void wxKeyConfigPanel::AddProfile(const wxKeyProfile &p, bool markAsChanged)
 {
     // add a new profile to the array
     m_pKeyProfiles->Append(p.GetName(), (void *)(new wxKeyProfile(p)));
@@ -1490,6 +1491,9 @@ void wxKeyConfigPanel::AddProfile(const wxKeyProfile &p)
 
         // the profile we added is the only one present... select it
         SetSelProfile(0);
+
+	if (markAsChanged)
+		this->m_bProfileModifiedOrChanged = true;
 }
 
 void wxKeyConfigPanel::AddProfiles(const wxKeyProfileArray &arr)
@@ -1841,6 +1845,15 @@ void wxKeyConfigPanel::ShowSizer(wxSizer *toshow, bool show)
 }
 
 
+bool wxKeyConfigPanel::HasProfileBeenModifiedOrSelected() const
+{
+	return this->m_bProfileModifiedOrChanged;
+}
+
+void wxKeyConfigPanel::ResetProfileBeenModifiedOrSelected()
+{
+	this->m_bProfileModifiedOrChanged = false;
+}
 
 
 // ----------------------------------------------------------------------------
@@ -1874,6 +1887,8 @@ void wxKeyConfigPanel::OnProfileEditing(wxCommandEvent &)
 
     // now the profile has been changed...
     m_bProfileHasBeenModified = TRUE;
+	m_bProfileModifiedOrChanged = TRUE;
+
 
     // change the name of the current profile
     m_kBinder.SetName(newname);
@@ -1945,7 +1960,7 @@ void wxKeyConfigPanel::OnCategorySelected(wxCommandEvent &ev)
     OnListCommandSelected(ev);
 }
 
-void wxKeyConfigPanel::OnProfileSelected(wxCommandEvent &)
+void wxKeyConfigPanel::OnProfileSelected(wxCommandEvent &e)
 {
     wxKBLogDebug(wxT("wxKeyConfigPanel::OnProfileSelected"));
 
@@ -2009,6 +2024,13 @@ void wxKeyConfigPanel::OnProfileSelected(wxCommandEvent &)
     m_kBinder.DeepCopy(*sel);
     m_bProfileHasBeenModified = FALSE;
 
+	if ( e.GetClientData() != NULL )
+	{
+		//mark as changed only if event was triggered by actually using the combobox
+		//do not trigger on the fake event issued when adding a profile
+		m_bProfileModifiedOrChanged = TRUE;
+	}
+
     // call other event handlers
     if (IsUsingTreeCtrl()) {
 
@@ -2052,6 +2074,7 @@ void wxKeyConfigPanel::OnAssignKey(wxCommandEvent &)
 
     // now the user has modified the currently selected profile...
     m_bProfileHasBeenModified = TRUE;
+	m_bProfileModifiedOrChanged = TRUE;
 
 #ifndef wxKEYBINDER_MULTICMD_PER_KEY
     // if the just added key bind was owned by another command,
@@ -2089,6 +2112,7 @@ void wxKeyConfigPanel::OnRemoveKey(wxCommandEvent &)
 
     // now the user has modified the currently selected profile...
     m_bProfileHasBeenModified = TRUE;
+	m_bProfileModifiedOrChanged = TRUE;
 
     // remove the selected shortcut
     GetSelCmd()->RemoveShortcut(m_pBindings->GetSelection());
@@ -2113,6 +2137,7 @@ void wxKeyConfigPanel::OnRemoveAllKey(wxCommandEvent &)
 
     // now the user has modified the currently selected profile...
     m_bProfileHasBeenModified = TRUE;
+	m_bProfileModifiedOrChanged = TRUE;
 
     // remove the selected shortcut
     GetSelCmd()->RemoveAllShortcuts();
@@ -2188,6 +2213,7 @@ void wxKeyConfigPanel::OnRemoveProfile(wxCommandEvent &)
 
     delete (pCurProfile);
     m_pKeyProfiles->Delete(m_nCurrentProf);
+	m_bProfileModifiedOrChanged = TRUE;
 
     // update the currently selected profile
     int newsel = m_nCurrentProf-1;
