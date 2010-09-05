@@ -1309,6 +1309,8 @@ public:     // keyprofile utilities (to call BEFORE ShowModal):
 
 	virtual void RemoveAllProfiles();
 
+	virtual void SelectCommand( const wxString& cmd );
+
 public:     // output-access utilities (to call AFTER ShowModal)
 
     //! Returns the n-th key profile of the profile combo box.
@@ -1428,6 +1430,7 @@ protected:      // utilities
     //! of this window or prepending it to the main sizer.
     virtual void ShowSizer(wxSizer *toshow, bool show);
 
+	wxTreeItemId FindTreeItem( wxTreeItemId root, const wxString& sSearchFor );
 
 protected:      // members
 

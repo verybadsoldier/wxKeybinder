@@ -259,14 +259,14 @@ public:
 	wxExComboItemData() {}
 	virtual ~wxExComboItemData() {}
 	
-	int GetID(int n) const
+	int GetID(size_t n) const
  		{ return m_arrID[n]; }
 	wxArrayString &GetCmdNameArr()
 		{ return m_arrStr; }
 		
 	void Append(const wxString &name, int id)
 		{ m_arrStr.Add(name); m_arrID.Add(id); }
-	void SetID(int n, int id)
+	void SetID(size_t n, int id)
 		{ m_arrID[n] = id; }
 };
 

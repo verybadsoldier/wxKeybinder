@@ -1188,13 +1188,13 @@ bool wxKeyConfigPanel::Create(wxWindow* parent,
 	if ( customButton1Label.size() > 0 && customButton1Event )
 	{
 		m_pCustomButton1 = new wxButton( this, wxID_ANY, customButton1Label, wxPoint(20, 20) );
-		m_pCustomButton1->Connect( wxEVT_COMMAND_BUTTON_CLICKED, customButton1Event );
+		m_pCustomButton1->Connect( wxEVT_COMMAND_BUTTON_CLICKED, customButton1Event, NULL, parent );
 	}
 
 	if ( customButton2Label.size() > 0 && customButton2Event )
 	{
 		m_pCustomButton2 = new wxButton( this, wxID_ANY, customButton2Label, wxPoint(20, 20) );
-		m_pCustomButton2->Connect( wxEVT_COMMAND_BUTTON_CLICKED, customButton2Event );
+		m_pCustomButton2->Connect( wxEVT_COMMAND_BUTTON_CLICKED, customButton2Event, NULL, parent );
 	}
 
     // build everything
@@ -1548,6 +1548,46 @@ void wxKeyConfigPanel::RemoveAllProfiles()
     }
 
 	m_pKeyProfiles->Clear();
+}
+
+wxTreeItemId wxKeyConfigPanel::FindTreeItem( wxTreeItemId root, const wxString& sSearchFor )
+{
+	wxTreeItemIdValue cookie;
+	wxTreeItemId search;
+	wxTreeItemId item = m_pCommandsTree->GetFirstChild( root, cookie );
+	wxTreeItemId child;
+ 
+	while( item.IsOk() )
+	{
+		wxString sData = m_pCommandsTree->GetItemText(item);
+		if( sSearchFor.CompareTo(sData) == 0 )
+		{
+			return item;
+		}
+		if( m_pCommandsTree->ItemHasChildren( item ) )
+		{
+			wxTreeItemId search = FindTreeItem( item, sSearchFor );
+			if( search.IsOk() )
+			{
+				return search;
+			}
+		}
+		item = m_pCommandsTree->GetNextChild( root, cookie);
+	}
+ 
+	/* Not found */
+	wxTreeItemId dummy;
+	return dummy;
+}
+
+void wxKeyConfigPanel::SelectCommand( const wxString& cmd )
+{
+	wxTreeItemId id = this->FindTreeItem( m_pCommandsTree->GetRootItem(), cmd );
+
+	if ( id != wxTreeItemId() )
+	{	
+		m_pCommandsTree->SelectItem( id );
+	}
 }
 
 void wxKeyConfigPanel::SetSelProfile(int n)
@@ -1981,7 +2021,7 @@ void wxKeyConfigPanel::OnCategorySelected(wxCommandEvent &ev)
     // clear the old elements & insert the new ones
     m_pCommandsList->Clear();
     for (size_t i=0; i < arr.GetCount(); i++)
-        m_pCommandsList->Append(arr.Item(i), (void *)data->GetID((int)i));
+        m_pCommandsList->Append(arr.Item(i), (void *)data->GetID(i));
 
     // select the first
     m_pCommandsList->Select(0);
