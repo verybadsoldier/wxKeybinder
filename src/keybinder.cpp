@@ -1040,7 +1040,7 @@ bool wxKeyProfileArray::Save(wxConfigBase *cfg, const wxString &key, bool bClean
     bool b = TRUE;
 
     cfg->SetPath(key);
-    if (!cfg->Write(basekey + wxT("nSelProfile"), m_nSelected))
+    if (!cfg->Write(basekey + wxT("nSelProfile"), static_cast<int>(m_nSelected) ))
         return FALSE;
 
     for (size_t i=0; i<GetCount(); i++)
@@ -1097,7 +1097,7 @@ bool wxKeyProfileArray::Load(wxConfigBase *p, const wxString &key)
 
     // before starting...
     p->SetPath(key);
-    if (!p->Read(wxT("nSelProfile"), &m_nSelected))
+    if (!p->Read(wxT("nSelProfile"), ( reinterpret_cast<int*>(&m_nSelected) ) ))
         return FALSE;
 
     cont = p->GetFirstGroup(str, idx);
@@ -1166,7 +1166,11 @@ void wxKeyMonitorTextCtrl::OnKey(wxKeyEvent &event)
 bool wxKeyConfigPanel::Create(wxWindow* parent,
                               wxWindowID id,
                               const wxPoint& pos, const wxSize& size,
-                              long style, const wxString& name)
+                              long style, const wxString& name,
+							  const wxString& customButton1Label,
+							  const wxObjectEventFunction customButton1Event,
+							  const wxString& customButton2Label,
+							  const wxObjectEventFunction customButton2Event )
 {
     if (!wxPanel::Create(parent, id, pos, size, style, name))
         return false;
@@ -1180,6 +1184,18 @@ bool wxKeyConfigPanel::Create(wxWindow* parent,
     wxASSERT_MSG(!(HasFlag(wxKEYBINDER_USE_LISTBOX) &&
                  HasFlag(wxKEYBINDER_USE_TREECTRL)),
                  wxT("You cannot specify them both !!"));
+
+	if ( customButton1Label.size() > 0 && customButton1Event )
+	{
+		m_pCustomButton1 = new wxButton( this, wxID_ANY, customButton1Label, wxPoint(20, 20) );
+		m_pCustomButton1->Connect( wxEVT_COMMAND_BUTTON_CLICKED, customButton1Event );
+	}
+
+	if ( customButton2Label.size() > 0 && customButton2Event )
+	{
+		m_pCustomButton2 = new wxButton( this, wxID_ANY, customButton2Label, wxPoint(20, 20) );
+		m_pCustomButton2->Connect( wxEVT_COMMAND_BUTTON_CLICKED, customButton2Event );
+	}
 
     // build everything
     BuildCtrls();
@@ -1299,6 +1315,16 @@ wxSizer *wxKeyConfigPanel::BuildColumn1()
         column1->Add(m_pCommandsList, 5, wxGROW | wxRIGHT | wxLEFT | wxBOTTOM, 5);
     }
 
+	if ( m_pCustomButton1 )
+	{
+		column1->Add(m_pCustomButton1, 0, wxGROW | wxALL, 5);
+	}
+
+	if ( m_pCustomButton2 )
+	{
+		column1->Add(m_pCustomButton2, 0, wxGROW | wxALL, 5);
+	}
+
     return column1;
 }
 
@@ -1395,9 +1421,11 @@ void wxKeyConfigPanel::ImportRawList(const ControlMap& itemMap, const wxString &
 		{
 			wxExTreeItemData *treedata = new wxExTreeItemData(iiter->second);
 			m_pCommandsTree->AppendItem(newId, iiter->first, -1, -1, treedata );
+			m_pCommandsTree->SortChildren(newId);
 		}
 	}
 
+	
     // expand the root (just for aesthetic/comfort reasons)...
     m_pCommandsTree->Expand(m_pCommandsTree->GetRootItem());
 }
@@ -1511,7 +1539,7 @@ void wxKeyConfigPanel::RemoveAllProfiles()
 {
 	// with the AddXXXXX functions we created wxKeyProfiles which we
     // then added into the m_pKeyProfiles combobox... we now must delete them.
-    for (int i=0; i < m_pKeyProfiles->GetCount(); i++) {
+    for (size_t i=0; i < m_pKeyProfiles->GetCount(); i++) {
         wxKeyProfile *data = (wxKeyProfile *)m_pKeyProfiles->GetClientData(i);
 
         // we can delete the client data safely because wxComboBox will leave

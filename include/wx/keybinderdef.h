@@ -17,7 +17,7 @@
 // since some kind of tests, like those of AM_WXCODE_CHECKFOR_COMPONENT_VERSION()
 // for "configure" scripts under unix, use them.
 #define wxKEYBINDER_MAJOR          2
-#define wxKEYBINDER_MINOR          1
+#define wxKEYBINDER_MINOR          2
 #define wxKEYBINDER_RELEASE        0
 
 // For non-Unix systems (i.e. when building without a configure script),
@@ -27,6 +27,8 @@
     (wxKEYBINDER_MAJOR > (major) || \
     (wxKEYBINDER_MAJOR == (major) && wxKEYBINDER_MINOR > (minor)) || \
     (wxKEYBINDER_MAJOR == (major) && wxKEYBINDER_MINOR == (minor) && wxKEYBINDER_RELEASE >= (release)))
+
+
 
 // for shared builds
 #ifdef WXMAKINGDLL_KEYBINDER

@@ -472,7 +472,7 @@ public:
 
     void DeepCopy(const wxCmdArray &arr) {
         Clear();
-        for (int i=0; i < arr.GetCount(); i++)
+        for (size_t i=0; i < arr.GetCount(); i++)
             Add(arr.Item(i)->Clone());
     }
 
@@ -485,7 +485,7 @@ public:
     void Remove(size_t n);
     void Clear();
 
-    int GetCount() const        { return m_arr.GetCount(); }
+    size_t GetCount() const        { return m_arr.GetCount(); }
     wxCmd *Item(int n) const    { return (wxCmd *)m_arr.Item(n); }
 };
 
@@ -969,7 +969,7 @@ class WXDLLIMPEXP_KEYBINDER wxKeyProfileArray
     wxArrayPtrVoid m_arr;
 
     //! The index of the currently selected profile.
-    int m_nSelected;
+    size_t m_nSelected;
 
 public:
     wxKeyProfileArray() { m_nSelected=-1; }
@@ -982,17 +982,17 @@ public:
     //! a virtual destructor) and so we are forced to re-implement the
     //! wxArray functions... @{
 
-    int GetCount() const            { return m_arr.GetCount(); }
-    int GetSelProfileIdx() const    { return m_nSelected; }
-    wxKeyProfile *Item(int n)       { return (wxKeyProfile*)m_arr.Item(n); }
+    size_t GetCount() const            { return m_arr.GetCount(); }
+    size_t GetSelProfileIdx() const    { return m_nSelected; }
+    wxKeyProfile *Item(size_t n)       { return (wxKeyProfile*)m_arr.Item(n); }
     wxKeyProfile *GetSelProfile()   { wxASSERT(m_nSelected >= 0 && m_nSelected < GetCount()); return Item(m_nSelected); }
     void Add(wxKeyProfile *p)       { m_arr.Add(p); }
     void Clear()                    { m_arr.Clear(); }
     void Remove(wxKeyProfile *p)    { m_arr.Remove(p); }
-    void SetSelProfile(int n)       { wxASSERT(n < GetCount()); m_nSelected = n; }
+    void SetSelProfile(size_t n)    { wxASSERT(n < GetCount()); m_nSelected = n; }
     bool IsEmpty() const            { return m_arr.IsEmpty(); }
 
-    const wxKeyProfile *Item(int n) const           { return (wxKeyProfile*)m_arr.Item(n); }
+    const wxKeyProfile *Item(size_t n) const           { return (wxKeyProfile*)m_arr.Item(n); }
     const wxKeyProfile *GetSelProfile() const       { return Item(m_nSelected); }
     void RemoveAt(size_t i, size_t count = 1)       { m_arr.RemoveAt(i, count); }
     void Insert(wxKeyProfile *p, int n)             { m_arr.Insert(p, n); }
@@ -1003,7 +1003,7 @@ public:
     //! Copies the given array.
     void DeepCopy(const wxKeyProfileArray &p) {
         Cleanup();
-        for (int i=0; i < p.GetCount(); i++)
+        for (size_t i=0; i < p.GetCount(); i++)
             Add(new wxKeyProfile(*p.Item(i)));
         m_nSelected = p.m_nSelected;
     }
@@ -1017,7 +1017,7 @@ public:
     //! Unlike #Clear() this function also deletes the objects and
     //! does not only detach them from this array.
     void Cleanup() {
-        for (int i=0; i < GetCount(); i++)
+        for (size_t i=0; i < GetCount(); i++)
             delete Item(i);
         Clear();
     }
@@ -1027,31 +1027,31 @@ public:
     //!       If all the keybinders are attached to the same window
     //!
     void AttachAllTo(wxWindow *w) {
-        for (int i=0; i<GetCount(); i++)
+        for (size_t i=0; i<GetCount(); i++)
             Item(i)->Attach(w);
     }
 
     //! Enables/disables all the wxKeyProfiles. See wxKeyBinder::Enable.
     void EnableAll(bool bEnable = TRUE) {
-        for (int i=0; i<GetCount(); i++)
+        for (size_t i=0; i<GetCount(); i++)
             Item(i)->Enable(bEnable);
     }
 
     //! Detaches all the wxKeyProfiles from the given window.
     void DetachAllFrom(wxWindow *w) {
-        for (int i=0; i<GetCount(); i++)
+        for (size_t i=0; i<GetCount(); i++)
             Item(i)->Detach(w);
     }
 
     //! Detaches all the wxKeyProfiles from *all* their attached windows.
     void DetachAll() {
-        for (int i=0; i<GetCount(); i++)
+        for (size_t i=0; i<GetCount(); i++)
             Item(i)->DetachAll();
     }
 
     //! Updates all the wxCmds contained.
     void UpdateAllCmd() {
-        for (int i=0; i<GetCount(); i++)
+        for (size_t i=0; i<GetCount(); i++)
             Item(i)->UpdateAllCmd();
     }
 
@@ -1237,9 +1237,13 @@ public:
                      const wxPoint& pos = wxDefaultPosition,
                      const wxSize& size = wxDefaultSize,
                      long style = wxKEYBINDER_DEFAULT_STYLE,
-                     const wxString& name = wxT("wxKeyConfigPanel"))
+                     const wxString& name = wxT("wxKeyConfigPanel"),
+					 const wxString& customButton1Label = wxT(""),
+					 const wxObjectEventFunction customButton1Event = NULL,
+					 const wxString& customButton2Label = wxT(""),
+					 const wxObjectEventFunction customButton2Event = NULL )
     {
-        Create(parent, id, pos, size, style, name);
+        Create(parent, id, pos, size, style, name, customButton1Label, customButton1Event, customButton2Label, customButton2Event);
     }
 
     bool Create(wxWindow* parent,
@@ -1247,7 +1251,11 @@ public:
                 const wxPoint& pos = wxDefaultPosition,
                 const wxSize& size = wxDefaultSize,
                 long style = wxKEYBINDER_DEFAULT_STYLE,
-                const wxString& name = wxT("wxKeyConfigPanel"));
+                const wxString& name = wxT("wxKeyConfigPanel"),
+				 const wxString& customButton1Label = wxT(""),
+				 const wxObjectEventFunction customButton1Event = NULL,
+				 const wxString& customButton2Label = wxT(""),
+				 const wxObjectEventFunction customButton2Event = NULL );
 
     virtual ~wxKeyConfigPanel();
 
@@ -1445,6 +1453,9 @@ protected:      // members
     bool m_bProfileHasBeenModified;
 
 	bool m_bProfileModifiedOrChanged;
+
+	wxButton* m_pCustomButton1;
+	wxButton* m_pCustomButton2;
 
 protected:      // the subwindows of this dialog
 
