@@ -1170,7 +1170,8 @@ bool wxKeyConfigPanel::Create(wxWindow* parent,
 							  const wxString& customButton1Label,
 							  const wxObjectEventFunction customButton1Event,
 							  const wxString& customButton2Label,
-							  const wxObjectEventFunction customButton2Event )
+							  const wxObjectEventFunction customButton2Event, 
+							  const wxString& customLabelText )
 {
     if (!wxPanel::Create(parent, id, pos, size, style, name))
         return false;
@@ -1196,6 +1197,8 @@ bool wxKeyConfigPanel::Create(wxWindow* parent,
 		m_pCustomButton2 = new wxButton( this, wxID_ANY, customButton2Label, wxPoint(20, 20) );
 		m_pCustomButton2->Connect( wxEVT_COMMAND_BUTTON_CLICKED, customButton2Event, NULL, parent );
 	}
+		
+	wxCustomLabelText = customLabelText;
 
     // build everything
     BuildCtrls();
@@ -1317,12 +1320,12 @@ wxSizer *wxKeyConfigPanel::BuildColumn1()
 
 	if ( m_pCustomButton1 )
 	{
-		column1->Add(m_pCustomButton1, 0, wxGROW | wxALL, 5);
-	}
+		column1->Add( new wxStaticText(this, -1, wxCustomLabelText ), 0, wxGROW | wxALL, 5 );
+		wxSizer* pS = new wxBoxSizer( wxHORIZONTAL ); 
+		pS->Add(m_pCustomButton1, 0, wxGROW | wxALL, 5);
+		pS->Add(m_pCustomButton2, 0, wxGROW | wxALL, 5);
 
-	if ( m_pCustomButton2 )
-	{
-		column1->Add(m_pCustomButton2, 0, wxGROW | wxALL, 5);
+		column1->Add(pS);
 	}
 
     return column1;

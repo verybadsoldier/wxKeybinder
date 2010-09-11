@@ -1241,9 +1241,11 @@ public:
 					 const wxString& customButton1Label = wxT(""),
 					 const wxObjectEventFunction customButton1Event = NULL,
 					 const wxString& customButton2Label = wxT(""),
-					 const wxObjectEventFunction customButton2Event = NULL )
+					 const wxObjectEventFunction customButton2Event = NULL,
+					const wxString& customLabelText = wxT("") )
     {
-        Create(parent, id, pos, size, style, name, customButton1Label, customButton1Event, customButton2Label, customButton2Event);
+
+		Create(parent, id, pos, size, style, name, customButton1Label, customButton1Event, customButton2Label, customButton2Event, customLabelText);
     }
 
     bool Create(wxWindow* parent,
@@ -1255,7 +1257,8 @@ public:
 				 const wxString& customButton1Label = wxT(""),
 				 const wxObjectEventFunction customButton1Event = NULL,
 				 const wxString& customButton2Label = wxT(""),
-				 const wxObjectEventFunction customButton2Event = NULL );
+				 const wxObjectEventFunction customButton2Event = NULL,
+				 const wxString& customLabelText = wxT("") );
 
     virtual ~wxKeyConfigPanel();
 
@@ -1459,6 +1462,7 @@ protected:      // members
 
 	wxButton* m_pCustomButton1;
 	wxButton* m_pCustomButton2;
+	wxString wxCustomLabelText;
 
 protected:      // the subwindows of this dialog
 
