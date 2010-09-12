@@ -44,6 +44,9 @@
     inline void wxKBLogDebug(const wxChar *WXUNUSED(fmt), ...) { /* do nothing */ }
 #endif
 
+//configure for springsettings (should better by befined in Makefile)
+#define wxKEYBINDER_SPRINGSETTINGS
+
 #ifdef wxKEYBINDER_SPRINGSETTINGS
 #define wxKEYBINDER_AUTO_SAVE
 #define wxKEYBINDER_ALLOW_PAUSE_KEY
