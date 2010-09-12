@@ -1231,7 +1231,7 @@ void wxKeyConfigPanel::BuildCtrls()
 
         // use a wxTreeCtrl to show the commands hierarchy
         m_pCommandsTree = new wxTreeCtrl(this, wxKEYBINDER_COMMANDS_BOX_ID, wxDefaultPosition,
-                                    wxDefaultSize, wxTR_HAS_BUTTONS | wxSUNKEN_BORDER);
+                                    wxSize(-1, 200), wxTR_HAS_BUTTONS | wxSUNKEN_BORDER);
     } else {
 
         // use a combobox + a listbox
@@ -2255,7 +2255,7 @@ void wxKeyConfigPanel::OnAddProfile(wxCommandEvent &)
     // create the new profile copying the last selected one
     wxKeyProfile *newprof = new wxKeyProfile(*sel, false, false); //copies of profiles ARE deletable and editable
     newprof->SetName(dlg.GetValue());       // just change its name
-    AddProfile(*newprof);
+    AddProfile(*newprof, true);
     delete newprof;
 
     // set the new profile as selected (the new profile is the last one)

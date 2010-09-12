@@ -1458,7 +1458,8 @@ protected:      // members
     //! to save its changes or not...
     bool m_bProfileHasBeenModified;
 
-	bool m_bProfileModifiedOrChanged;
+	//this is used to ask if anything in a profile has been changed and needs to be saved
+	bool m_bProfileModifiedOrChanged;	
 
 	wxButton* m_pCustomButton1;
 	wxButton* m_pCustomButton2;
